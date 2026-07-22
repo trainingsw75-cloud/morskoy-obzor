@@ -1,0 +1,11 @@
+[
+  {"name": "BBC Русская служба", "id": "UC8zQiuT0m1TELequJ5sp5zw", "maritime": false},
+  {"name": "DW на русском", "id": "UCXoAjrdHFa2hEL3Ug8REC1w", "maritime": false},
+  {"name": "Настоящее Время", "id": "UCBG57608Hukev3d0d-gvLhQ", "maritime": false},
+  {"name": "УНІАН", "id": "UCKCVeAihEfJr-pGH7B73Wyg", "maritime": false},
+  {"name": "PortNews TV", "id": "UCrNeVMFWWfCVt1ozJPw00tA", "maritime": true},
+  {"name": "Sky News", "id": "UCoMdktPbSTixAyNGwb-UYkQ", "maritime": false},
+  {"name": "Al Jazeera English", "id": "UCNye-wNBqNL5ZzHSJj3l8Bg", "maritime": false},
+  {"name": "WION", "id": "UC_gUM8rL-Lrg6O3adPW9K1g", "maritime": false},
+  {"name": "What's Going on With Shipping", "id": "UCT_yBgKSiwb3WP4ACPnF5nA", "maritime": true}
+]
