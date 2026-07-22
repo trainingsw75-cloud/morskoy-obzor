@@ -188,17 +188,36 @@ def build_html(items, now_msk, archive_days):
 <style>
   :root {{ --bg:#0b1220; --card:#141d31; --txt:#e8edf7; --dim:#93a1bd; --red:#ff4444; --cyan:#4fc3f7; }}
   * {{ box-sizing:border-box; margin:0; padding:0; }}
-  body {{ background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.45; }}
+  body {{ background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.45; overflow-x:hidden; }}
+  /* живой объёмный фон: два плывущих световых пятна */
+  body::before, body::after {{ content:""; position:fixed; z-index:-1; width:65vmax; height:65vmax; border-radius:50%; filter:blur(90px); opacity:.22; pointer-events:none; }}
+  body::before {{ background:#1b3a6b; top:-22vmax; left:-18vmax; animation:drift 26s ease-in-out infinite alternate; }}
+  body::after {{ background:#0e4d64; bottom:-26vmax; right:-16vmax; animation:drift 34s ease-in-out infinite alternate-reverse; }}
+  @keyframes drift {{ from {{ transform:translate3d(0,0,0) scale(1); }} to {{ transform:translate3d(9vmax,7vmax,0) scale(1.18); }} }}
   header {{ padding:28px 16px 18px; text-align:center; background:linear-gradient(180deg,#101a30,var(--bg)); border-bottom:1px solid #1e2a44; }}
-  .badge {{ display:inline-block; background:var(--red); color:#fff; font-weight:800; letter-spacing:.08em; padding:4px 14px; border-radius:6px; font-size:14px; }}
-  h1 {{ font-size:clamp(24px,5vw,40px); margin:10px 0 4px; }} h1 .a {{ color:var(--cyan); }}
+  .badge {{ display:inline-block; background:var(--red); color:#fff; font-weight:800; letter-spacing:.08em; padding:4px 14px; border-radius:6px; font-size:14px; box-shadow:0 0 18px rgba(255,68,68,.55); animation:pulse 2.6s ease-in-out infinite; }}
+  @keyframes pulse {{ 0%,100% {{ box-shadow:0 0 10px rgba(255,68,68,.35); }} 50% {{ box-shadow:0 0 26px rgba(255,68,68,.75); }} }}
+  h1 {{ font-size:clamp(24px,5vw,40px); margin:10px 0 4px;
+    text-shadow:0 1px 0 #24365c, 0 2px 0 #1f2f51, 0 3px 0 #1a2846, 0 4px 0 #16223c, 0 10px 22px rgba(0,0,0,.6); }}
+  h1 .a {{ color:var(--cyan); text-shadow:0 1px 0 #0d5d80, 0 2px 0 #0b506e, 0 3px 0 #09435c, 0 4px 0 #07364a, 0 10px 22px rgba(0,0,0,.6); }}
+  .waves {{ display:block; width:100%; height:46px; margin-top:16px; overflow:visible; }}
+  .wv1 {{ animation:wave 9s linear infinite; }}
+  .wv2 {{ animation:wave 15s linear infinite reverse; }}
+  @keyframes wave {{ from {{ transform:translateX(0); }} to {{ transform:translateX(-1440px); }} }}
   .date {{ color:var(--dim); font-size:15px; }}
   .summary {{ max-width:900px; margin:14px auto 0; color:var(--txt); font-size:15px; background:#101a30; border:1px solid #1e2a44; border-radius:10px; padding:10px 16px; }}
   .share {{ margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }}
   .share a {{ display:inline-block; padding:8px 16px; border-radius:999px; font-size:14px; font-weight:700; text-decoration:none; color:#fff; border-bottom:none; }}
   .fb {{ background:#1877f2; }} .tg {{ background:#2aabee; }} .wa {{ background:#25d366; }}
   main {{ max-width:1100px; margin:0 auto; padding:22px 14px 8px; display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:18px; }}
-  .card {{ background:var(--card); border:1px solid #1e2a44; border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }}
+  .card {{ background:var(--card); border:1px solid #1e2a44; border-radius:12px; overflow:hidden; display:flex; flex-direction:column;
+    transform-style:preserve-3d; will-change:transform; transition:transform .18s ease, box-shadow .3s ease, border-color .3s ease;
+    box-shadow:0 10px 26px rgba(0,0,0,.35); }}
+  .card:hover {{ box-shadow:0 26px 60px rgba(0,0,0,.55), 0 0 24px rgba(79,195,247,.18); border-color:#2c4470; }}
+  @media (prefers-reduced-motion: reduce) {{
+    body::before, body::after, .badge, .wv1, .wv2 {{ animation:none; }}
+    .card {{ transition:none; }}
+  }}
   .video {{ position:relative; aspect-ratio:16/9; background:#000; cursor:pointer; }}
   .video img {{ width:100%; height:100%; object-fit:cover; display:block; }}
   .video iframe {{ width:100%; height:100%; border:0; position:absolute; inset:0; }}
@@ -225,6 +244,10 @@ def build_html(items, now_msk, archive_days):
     <a class="tg" href="https://t.me/share/url?url={share_url}" target="_blank" rel="noopener">В Telegram</a>
     <a class="wa" href="https://wa.me/?text={share_url}" target="_blank" rel="noopener">В WhatsApp</a>
   </div>
+  <svg class="waves" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true">
+    <path class="wv1" fill="rgba(79,195,247,.12)" d="M0,30 C240,10 480,50 720,30 C960,10 1200,50 1440,30 C1680,10 1920,50 2160,30 C2400,10 2640,50 2880,30 L2880,60 L0,60 Z"/>
+    <path class="wv2" fill="rgba(79,195,247,.07)" d="M0,34 C240,54 480,14 720,34 C960,54 1200,14 1440,34 C1680,54 1920,14 2160,34 C2400,54 2640,14 2880,34 L2880,60 L0,60 Z"/>
+  </svg>
 </header>
 <main>
 {''.join(cards) if cards else '<div class="empty">Сегодня без происшествий в подборке. Это хорошие новости.</div>'}
@@ -246,6 +269,17 @@ document.addEventListener('click', function (e) {{
   f.allowFullscreen = true;
   v.innerHTML = '';
   v.appendChild(f);
+}});
+// объёмный наклон карточек за курсором (только мышь, на телефоне не мешает)
+document.querySelectorAll('.card').forEach(function (c) {{
+  c.addEventListener('pointermove', function (e) {{
+    if (e.pointerType !== 'mouse') return;
+    var r = c.getBoundingClientRect();
+    var x = (e.clientX - r.left) / r.width - 0.5;
+    var y = (e.clientY - r.top) / r.height - 0.5;
+    c.style.transform = 'perspective(900px) rotateY(' + (x * 7).toFixed(2) + 'deg) rotateX(' + (-y * 7).toFixed(2) + 'deg) translateY(-5px)';
+  }});
+  c.addEventListener('pointerleave', function () {{ c.style.transform = ''; }});
 }});
 </script>
 </body>
