@@ -149,6 +149,8 @@ def fmt_msk(dt):
 
 
 def build_html(items, now_msk, archive_days):
+    import urllib.parse
+    share_url = urllib.parse.quote(SITE_URL, safe="")
     date_line = f"{now_msk.day} {MONTHS_RU[now_msk.month - 1]} {now_msk.year}"
     if items:
         top = " • ".join(i["title"][:80] for i in items[:3])
@@ -192,6 +194,9 @@ def build_html(items, now_msk, archive_days):
   h1 {{ font-size:clamp(24px,5vw,40px); margin:10px 0 4px; }} h1 .a {{ color:var(--cyan); }}
   .date {{ color:var(--dim); font-size:15px; }}
   .summary {{ max-width:900px; margin:14px auto 0; color:var(--txt); font-size:15px; background:#101a30; border:1px solid #1e2a44; border-radius:10px; padding:10px 16px; }}
+  .share {{ margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }}
+  .share a {{ display:inline-block; padding:8px 16px; border-radius:999px; font-size:14px; font-weight:700; text-decoration:none; color:#fff; border-bottom:none; }}
+  .fb {{ background:#1877f2; }} .tg {{ background:#2aabee; }} .wa {{ background:#25d366; }}
   main {{ max-width:1100px; margin:0 auto; padding:22px 14px 8px; display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:18px; }}
   .card {{ background:var(--card); border:1px solid #1e2a44; border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }}
   .video {{ position:relative; aspect-ratio:16/9; background:#000; cursor:pointer; }}
@@ -215,6 +220,11 @@ def build_html(items, now_msk, archive_days):
   <h1>МОРСКОЙ <span class="a">ОБЗОР</span></h1>
   <div class="date">за {date_line} · обновляется ежедневно в 08:00 по Москве</div>
   <div class="summary">{esc(summary)}</div>
+  <div class="share">
+    <a class="fb" href="https://www.facebook.com/sharer/sharer.php?u={share_url}" target="_blank" rel="noopener">Поделиться в Facebook</a>
+    <a class="tg" href="https://t.me/share/url?url={share_url}" target="_blank" rel="noopener">В Telegram</a>
+    <a class="wa" href="https://wa.me/?text={share_url}" target="_blank" rel="noopener">В WhatsApp</a>
+  </div>
 </header>
 <main>
 {''.join(cards) if cards else '<div class="empty">Сегодня без происшествий в подборке. Это хорошие новости.</div>'}
