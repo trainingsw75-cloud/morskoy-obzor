@@ -1,0 +1,6 @@
+/youtube-news-drafts/
+/shorts-output/
+/.shorts-models/
+__pycache__/
+.venv/
+.env

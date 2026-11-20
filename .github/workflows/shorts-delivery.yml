@@ -1,0 +1,77 @@
+name: SW75 Shorts delivery
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        type: choice
+        options: [youtube, facebook, telegram]
+        required: true
+      preview_run:
+        description: "ID успешного запуска Shorts preview на main"
+        type: string
+        required: true
+      day:
+        description: "Дата выпуска YYYY-MM-DD"
+        type: string
+        required: true
+      approved_sha:
+        description: "SHA-256 просмотренного MP4 или согласованного текста Facebook"
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: sw75-shorts-delivery
+  cancel-in-progress: false
+
+jobs:
+  delivery:
+    if: github.event.repository.private == true && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    environment: shorts-delivery
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Validate preview run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_RUN: ${{ inputs.preview_run }}
+          EDITION_DAY: ${{ inputs.day }}
+        run: |
+          [[ "$PREVIEW_RUN" =~ ^[0-9]+$ && "$EDITION_DAY" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PREVIEW_RUN" |
+            jq -e --arg repo "$GITHUB_REPOSITORY" '
+              .path == ".github/workflows/shorts-preview.yml" and
+              .head_repository.full_name == $repo and
+              .head_branch == "main" and .conclusion == "success"' >/dev/null
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.preview_run }}
+          name: sw75-${{ inputs.day }}
+          path: package
+      - name: Deliver approved package
+        env:
+          DELIVERY_CHANNEL: ${{ inputs.channel }}
+          APPROVED_SHA: ${{ inputs.approved_sha }}
+          SHORTS_JOURNAL_BRANCH: ${{ vars.SHORTS_JOURNAL_BRANCH }}
+          SHORTS_JOURNAL_TOKEN: ${{ secrets.SHORTS_JOURNAL_TOKEN }}
+          YOUTUBE_UPLOAD_ENABLED: ${{ vars.YOUTUBE_UPLOAD_ENABLED || 'false' }}
+          YOUTUBE_PUBLISH_ENABLED: ${{ vars.YOUTUBE_PUBLISH_ENABLED || 'false' }}
+          YT_CHANNEL_ID: ${{ vars.YT_CHANNEL_ID }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          FB_POST_ENABLED: ${{ vars.FB_POST_ENABLED || 'false' }}
+          FB_PAGE_ID: ${{ vars.FB_PAGE_ID }}
+          FB_GRAPH_API_VERSION: ${{ vars.FB_GRAPH_API_VERSION }}
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          TELEGRAM_NOTIFY_ENABLED: ${{ vars.TELEGRAM_NOTIFY_ENABLED || 'false' }}
+          EBASHIT_TOKEN: ${{ secrets.EBASHIT_TOKEN }}
+          OWNER_CHAT_ID: ${{ secrets.OWNER_CHAT_ID }}
+        run: python3 shorts/deliver.py "$DELIVERY_CHANNEL" package --approved-sha "$APPROVED_SHA"
