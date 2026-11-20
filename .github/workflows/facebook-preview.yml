@@ -1,0 +1,104 @@
+name: Facebook Pages — проверка и предпросмотр
+
+on:
+  workflow_dispatch:
+    inputs:
+      check_access:
+        description: Проверить токен страницы через Meta Graph API
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Предпросмотр последнего выпуска в выбранной ветке
+        run: |
+          python3 - <<'PY'
+          import html
+          import os
+          import re
+          from datetime import date
+          from pathlib import Path
+
+          from build_review import MONTHS_RU, SITE_URL
+
+          lines = Path("docs/tg.txt").read_text(encoding="utf-8").splitlines()
+          header = lines[0] if lines else ""
+          match = re.fullmatch(
+              r"⚡ МОРСКОЙ ОБЗОР — (\d{1,2}) ([а-я]+) (\d{4}), 08:00 МСК",
+              header,
+          )
+          if not match or match[2] not in MONTHS_RU:
+              raise SystemExit("В docs/tg.txt нет даты выпуска ожидаемого формата.")
+
+          edition = date(int(match[3]), MONTHS_RU.index(match[2]) + 1, int(match[1]))
+          archive = f"archive/{edition.isoformat()}.html"
+          if not (Path("docs") / archive).is_file():
+              raise SystemExit(f"В выбранной ветке отсутствует docs/{archive}.")
+
+          number = next((line for line in lines if re.fullmatch(
+              r"Сегодня в обзоре: \d+ видео\.", line
+          )), "За последние сутки подходящих видео в подборке нет.")
+          headlines = [line for line in lines if re.match(r"^[0-9]+\. ", line)]
+          message = "\n".join([f"Морской обзор — {edition:%d.%m.%Y}", "", number])
+          if headlines:
+              message += "\n\n" + "\n".join(headlines[:3])
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("## Предпросмотр поста Facebook\n\n")
+              summary.write(f"<pre>{html.escape(message)}</pre>\n\n")
+              summary.write(f"Ссылка выпуска: {SITE_URL}{archive}\n")
+          PY
+
+      - name: Проверить токен и ID страницы
+        if: ${{ inputs.check_access }}
+        env:
+          FB_PAGE_ID: ${{ vars.FB_PAGE_ID }}
+          FB_GRAPH_API_VERSION: ${{ vars.FB_GRAPH_API_VERSION }}
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import http.client
+          import json
+          import os
+          import re
+
+          page_id = os.environ["FB_PAGE_ID"]
+          version = os.environ["FB_GRAPH_API_VERSION"]
+          token = os.environ["FB_PAGE_ACCESS_TOKEN"]
+          if not re.fullmatch(r"[0-9]+", page_id):
+              raise SystemExit("Задайте FB_PAGE_ID в GitHub Actions Variables.")
+          if not re.fullmatch(r"v[0-9]+\.[0-9]+", version):
+              raise SystemExit("Задайте FB_GRAPH_API_VERSION в формате vNN.N.")
+          if not token:
+              raise SystemExit("Задайте FB_PAGE_ACCESS_TOKEN в GitHub Actions Secrets.")
+
+          connection = http.client.HTTPSConnection("graph.facebook.com", timeout=15)
+          try:
+              connection.request(
+                  "GET", f"/{version}/me?fields=id",
+                  headers={"Authorization": f"Bearer {token}"},
+              )
+              response = connection.getresponse()
+              if response.status != 200:
+                  raise SystemExit(f"Meta отклонила проверку. HTTP {response.status}.")
+              payload = json.loads(response.read(65536))
+          except (OSError, ValueError, http.client.HTTPException):
+              raise SystemExit("Не удалось получить корректный ответ Meta.") from None
+          finally:
+              connection.close()
+
+          if not isinstance(payload, dict) or payload.get("id") != page_id:
+              raise SystemExit("Токен /me не соответствует настроенной странице.")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("\n**Доступ подтверждён.** Meta вернула ожидаемый ID страницы.\n")
+          PY
